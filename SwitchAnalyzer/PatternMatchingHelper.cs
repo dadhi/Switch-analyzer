@@ -11,8 +11,16 @@ namespace SwitchAnalyzer
         {
             var caseExpressions = GetCaseDeclarationPatternSyntaxes(caseSyntaxes);
             var caseValues = caseExpressions.Select(x => x.Type)
-                .OfType<IdentifierNameSyntax>()
-                .Select(x => x.Identifier.Text);
+                .Select(t =>
+                {
+                    if (t is IdentifierNameSyntax i)
+                        return i.Identifier.Text;
+                    if (t is QualifiedNameSyntax q)
+                        return q.Left.GetText().ToString().Trim() + "." + q.Right.Identifier.Text;
+                    return null;
+                })
+                .Where(x => x != null)
+                .ToList();
             return caseValues;
         }
 

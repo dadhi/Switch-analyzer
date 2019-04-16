@@ -37,7 +37,23 @@ namespace SwitchAnalyzer
             ITypeSymbol interfaceType,
             SemanticModel semanticModel)
         {
-            var allSymbols = semanticModel.LookupSymbols(switchStatementLocationStart);           
+            if (interfaceType.ContainingType != null && 
+                interfaceType.Name == "union")
+            {
+                var nestedSymbols = semanticModel.LookupSymbols(switchStatementLocationStart, interfaceType.ContainingType);
+                var unionImplementations = nestedSymbols.OfType<INamedTypeSymbol>()
+                    .Where(t => t.Interfaces.Any(i => i.Name == "union"))
+                    .ToList();
+
+                if (unionImplementations.Count != 0)
+                    return unionImplementations.Select(x => new SwitchArgumentTypeItem<string>(
+                        x.ContainingNamespace.Name,
+                        x.Name,
+                        x.ContainingType.Name + "." + x.Name,
+                        x.Name));
+            }
+
+            var allSymbols = semanticModel.LookupSymbols(switchStatementLocationStart);
             var namedTypeSymbols = allSymbols.Where(x => x.Kind == SymbolKind.NamedType).OfType<INamedTypeSymbol>();
             var implementations = namedTypeSymbols.Where(namedType => namedType.Interfaces.Any(x =>
                 x.Name == interfaceType.Name
